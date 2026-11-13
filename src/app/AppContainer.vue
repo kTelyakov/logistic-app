@@ -6,6 +6,7 @@ import { fetchMe, useSessionStore } from '@/modules/session'
 import { ConnectionContainer, createSyncClient, useConnectionStore, type SyncClient } from '@/modules/sync'
 import { vehicleViewStore } from '@/modules/vehicles'
 import { configureHttp } from '@/shared/http'
+import { NoticeContainer } from '@/shared/notices'
 import { resolveApiBase } from './apiBase'
 import { createBatchTarget } from './batchTarget'
 import { installTestHook } from './testHook'
@@ -72,6 +73,8 @@ onBeforeUnmount(() => {
     <p v-if="session.error && sessionLoading" class="banner banner--error" role="alert" data-testid="session-error">
       Не удалось загрузить данные пользователя: {{ session.error }}. Повторяем…
     </p>
+
+    <NoticeContainer />
 
     <main class="layout">
       <section class="panel map" aria-label="Схема площадки" data-testid="site-map">

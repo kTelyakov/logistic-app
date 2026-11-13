@@ -20,18 +20,26 @@ export interface PointView {
   name: string
   mode: Point['mode']
   modeLabel: string
+  /** Команда по пункту в пути: переключатель недоступен. */
+  busy: boolean
   queue: QueueRowView[]
 }
 
 const MODE_LABELS: Record<Point['mode'], string> = { auto: 'Авто', manual: 'Ручной' }
 
 /** Модель представления для панели очередей: значения сервера, только отформатированные. */
-export function toPointViews(points: readonly Point[], tz: string, nameOf: (vehicleId: string) => string): PointView[] {
+export function toPointViews(
+  points: readonly Point[],
+  tz: string,
+  nameOf: (vehicleId: string) => string,
+  isBusy: (pointId: string) => boolean = () => false,
+): PointView[] {
   return points.map((point) => ({
     id: point.point_id,
     name: point.name,
     mode: point.mode,
     modeLabel: MODE_LABELS[point.mode],
+    busy: isBusy(point.point_id),
     queue: point.queue.map((item) => ({
       key: `${point.point_id}:${item.vehicle_id}`,
       vehicleId: item.vehicle_id,

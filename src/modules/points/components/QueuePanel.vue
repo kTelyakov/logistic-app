@@ -1,7 +1,14 @@
 <script setup lang="ts">
+import type { PointMode } from '@dispatch/contract'
 import type { PointView } from '../helpers/viewModel'
+import ModeSwitch from './ModeSwitch.vue'
 
-defineProps<{ points: PointView[] }>()
+defineProps<{
+  points: PointView[]
+  /** Показывать переключатель режима: только диспетчеру. */
+  canCommand?: boolean
+}>()
+const emit = defineEmits<{ setMode: [pointId: string, mode: PointMode] }>()
 </script>
 
 <template>
@@ -19,7 +26,14 @@ defineProps<{ points: PointView[] }>()
     >
       <header class="point__head">
         <span class="point__name">{{ point.name }}</span>
-        <span class="point__mode" :class="`point__mode--${point.mode}`">{{ point.modeLabel }}</span>
+        <span v-if="!canCommand" class="point__mode" :class="`point__mode--${point.mode}`">{{ point.modeLabel }}</span>
+        <ModeSwitch
+          v-if="canCommand"
+          class="point__switch"
+          :mode="point.mode"
+          :busy="point.busy"
+          @change="(mode) => emit('setMode', point.id, mode)"
+        />
       </header>
       <div v-if="point.queue.length > 0" class="queue__scroll">
       <table class="queue">

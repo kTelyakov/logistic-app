@@ -13,9 +13,21 @@ export const usePointsStore = defineStore('points', () => {
     byId.value = new Map(points.map((p) => [p.point_id, p]))
   }
 
-  /** Сообщения несут полный объект после изменения: побеждает последнее. */
+  /** Сообщения несут полный объект после изменения: побеждает последнее; устаревшая версия не затирает новую. */
   function applyPointMessagesMutator(messages: readonly PointMessage[]): void {
-    for (const message of messages) byId.value.set(message.data.point_id, message.data)
+    for (const message of messages) {
+      const current = byId.value.get(message.data.point_id)
+      if (current && current.version > message.data.version) continue
+      byId.value.set(message.data.point_id, message.data)
+    }
+    triggerRef(byId)
+  }
+
+  /** Принимает ответ сервера на команду (в том числе 409 с актуальным пунктом): версия не старее известной. */
+  function applyServerPointMutator(point: Point): void {
+    const current = byId.value.get(point.point_id)
+    if (current && current.version > point.version) return
+    byId.value.set(point.point_id, point)
     triggerRef(byId)
   }
 
@@ -23,5 +35,5 @@ export const usePointsStore = defineStore('points', () => {
     return byId.value.get(id)
   }
 
-  return { sorted, get, replacePointsMutator, applyPointMessagesMutator }
+  return { sorted, get, replacePointsMutator, applyPointMessagesMutator, applyServerPointMutator }
 })

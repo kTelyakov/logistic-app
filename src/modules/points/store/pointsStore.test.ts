@@ -41,3 +41,23 @@ describe('pointsStore', () => {
     expect(store.sorted[0]?.version).toBe(9)
   })
 })
+
+describe('pointsStore: версии', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('опоздавшее сообщение со старой версией не затирает новую', () => {
+    const store = usePointsStore()
+    store.replacePointsMutator([point(1, { mode: 'manual', version: 5 })])
+    store.applyPointMessagesMutator([message(9, point(1, { mode: 'auto', version: 3 }))])
+    expect(store.get('p-1')).toMatchObject({ mode: 'manual', version: 5 })
+  })
+
+  it('ответ сервера на команду принимается, если версия не старее', () => {
+    const store = usePointsStore()
+    store.replacePointsMutator([point(1, { version: 5 })])
+    store.applyServerPointMutator(point(1, { mode: 'manual', version: 6 }))
+    expect(store.get('p-1')?.mode).toBe('manual')
+    store.applyServerPointMutator(point(1, { mode: 'auto', version: 2 }))
+    expect(store.get('p-1')?.mode).toBe('manual')
+  })
+})

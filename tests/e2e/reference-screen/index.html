@@ -142,7 +142,10 @@
             ),
         )
       }
-      setInterval(render, 100)
+      const renderTimer = setInterval(render, 100)
+      // Тестовый шов: замораживает перерисовку, чтобы негативный контроль сверки мог испортить DOM,
+      // не опасаясь, что экран тут же перерисует его по таймеру
+      window.__freezeRender = () => clearInterval(renderTimer)
 
       resync()
     </script>

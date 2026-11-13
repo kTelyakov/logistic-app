@@ -228,6 +228,8 @@ test.describe('A7: негативный контроль сверки', () => {
     })
     await mock.pause()
     await waitUntil(async () => (await compareOnce(app, mock)).length === 0)
+    // Экран сошёлся и больше не перерисуется: правки DOM ниже не будут затёрты
+    await app.evaluate(() => (window as unknown as { __freezeRender(): void }).__freezeRender())
 
     const corrupt = async (mutate: () => void, expectedWhere: RegExp) => {
       await app.evaluate(mutate)
