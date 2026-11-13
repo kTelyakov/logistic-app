@@ -189,3 +189,33 @@ describe('Simulation', () => {
     expect(updated.size).toBeGreaterThanOrEqual(35)
   })
 })
+
+describe('PREFILL_DECISIONS', () => {
+  it('история за последний час: завершённые решения, равномерно по часу, в снимке, не в журнале', () => {
+    const { world, config, clock } = setup({ load: 150, prefillDecisions: 360, decisionMinMs: 1_000_000, decisionMaxMs: 2_000_000 })
+    const decisions = [...world.decisions.values()]
+    expect(config.prefillDecisions).toBe(360)
+    expect(decisions).toHaveLength(360)
+    expect(decisions.every((d) => d.status !== 'pending')).toBe(true)
+    expect(new Set(decisions.map((d) => d.decision_id)).size).toBe(360)
+    const times = decisions.map((d) => Date.parse(d.created_at)).sort((a, b) => a - b)
+    expect(times[0]).toBeGreaterThan(clock() - 3_600_000)
+    expect(times[times.length - 1]).toBeLessThan(clock())
+    expect(world.recentDecisions()).toHaveLength(360)
+    expect(world.seq).toBe(0) // в журнал не пишется: события создаются только живой симуляцией
+    for (const d of decisions) expect(d.from_point).not.toBe(d.to_point)
+  })
+
+  it('по ходу времени старейшие выходят из часового окна, окно не растёт', () => {
+    const { world, advance } = setup({ load: 20, prefillDecisions: 360, decisionMinMs: 1_000_000, decisionMaxMs: 2_000_000 })
+    expect(world.recentDecisions()).toHaveLength(360)
+    advance(600_000) // 10 минут без новых решений: шестая часть часа, то есть около 60 из 360, вышла из окна
+    const left = world.recentDecisions().length
+    expect(left).toBeGreaterThanOrEqual(298)
+    expect(left).toBeLessThanOrEqual(302)
+  })
+
+  it('без настройки истории нет', () => {
+    expect(setup().world.decisions.size).toBe(0)
+  })
+})

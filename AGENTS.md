@@ -6,26 +6,29 @@
 
 ## Команды
 
-| Команда | Что делает | Статус |
-|---|---|---|
-| `make install` | `npm install` | работает |
-| `make mock` | заглушка сервера | `mock-server` |
-| `make dev` | экран (Vite) | работает |
-| `make check` | `vue-tsc`, ESLint с правилами 1–4, циклы импортов | работает |
-| `make test` | Vitest | `sync-core`, `tests-unit-e2e` |
-| `make e2e` | Playwright на заглушке | основа готова (`e2e-foundation`), сценарии в `tests-unit-e2e` |
-| `make perf` | прогон → `perf/report.md` | `perf` |
+| Команда | Что делает |
+|---|---|
+| `make install` | `npm install` и Chromium для Playwright |
+| `make mock` | заглушка сервера (`PORT`, `LOAD`, `FAULTS`, `ROLE`, `FAULT_SEED`; полный список в README) |
+| `make dev` | экран (Vite), проксирует `/api`, `/ws`, `/debug` на заглушку |
+| `make check` | `vue-tsc`, ESLint с правилами 1–4, циклы импортов |
+| `make test` | Vitest |
+| `make e2e` | Playwright на заглушке, около 7 минут |
+| `make e2e-stress` | тяжёлые сценарии (15 000 машин, потеря контекста, фоновая вкладка) |
+| `make perf` | 10 минут на `LOAD=1000`, пишет `perf/report.md` |
 
-Цель, которая ещё не реализована, завершается ошибкой. Не превращай её в заглушку с кодом 0.
-Перед тем как считать задачу выполненной, запусти `make check` и `make test` (когда они появятся).
+Не превращай цель Makefile в заглушку с кодом 0: незавершённая цель должна падать.
+Перед тем как считать задачу выполненной, запусти `make check` и `make test`; для изменений экрана ещё `make e2e`.
 
 ## Структура
 
 ```
 contract/            общий пакет: только типы и константы
 mock/                заглушка сервера (Node + TS)
-src/shared/          httpClient, ui, utils; не знает о модулях
-src/modules/<module>/  api/ helpers/ utils/ store/ components/ *Container.vue index.ts
+src/shared/          http (общий клиент), notices, utils; не знает о модулях
+src/app/             корневой контейнер: применяет пакеты воркера к хранилищам модулей
+src/modules/<module>/  api/ helpers/ store/ components/ *Container.vue index.ts
+tools/lint/          правила 1–4 (плагин ESLint), проверка циклов, их тесты
 tests/e2e, tests/perf
 ```
 

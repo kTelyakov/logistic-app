@@ -23,4 +23,4 @@ e2e-stress:
 	npm run e2e:stress
 
 perf:
-	@echo "не реализовано: perf" >&2; exit 1
+	npm run perf

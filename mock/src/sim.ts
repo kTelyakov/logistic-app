@@ -109,6 +109,7 @@ export class Simulation {
     this.nextPruneAt = now + 60_000
     this.createPoints(now)
     this.createVehicles(now)
+    this.prefillDecisions(now)
   }
 
   start(): void {
@@ -266,6 +267,37 @@ export class Simulation {
       const progress = this.rng()
       mover.startAt = now - Math.floor((mover.arriveAt - now) * progress)
       this.applyPublic(mover, now)
+    }
+  }
+
+  /**
+   * История решений за последний час (PREFILL_DECISIONS): состояние середины смены. Решения завершены, равномерно
+   * разнесены по часу, и в снимок попадают как настоящие; в журнал событий не пишутся. По мере хода времени
+   * старейшие выходят из часового окна, а новые занимают их место, поэтому окно не растёт.
+   */
+  private prefillDecisions(now: number): void {
+    const count = this.config.prefillDecisions
+    if (count <= 0) return
+    const hour = 3_600_000
+    const names = [...this.points.keys()]
+    for (let i = 0; i < count; i++) {
+      const createdAt = now - hour + Math.floor(((i + 1) * hour) / (count + 1))
+      const from = names[i % names.length] as string
+      const to = names[(i + 1 + (i % (names.length - 1))) % names.length] as string
+      const status: Decision['status'] = i % 7 === 0 ? 'expired' : i % 11 === 0 ? 'cancelled' : 'executed'
+      const decision: Decision = {
+        decision_id: `d-${3381 - count + i}`,
+        vehicle_id: `v-${String((i % this.config.load) + 1).padStart(2, '0')}`,
+        from_point: from,
+        to_point: to === from ? (names[(names.indexOf(from) + 1) % names.length] as string) : to,
+        gain_s: 20 + (i % 90),
+        reason: `Очередь на ${from} превышает очередь на ${to}`,
+        status,
+        created_at: iso(createdAt),
+        execute_at: iso(createdAt + this.config.executeAfterMs),
+        version: 2,
+      }
+      this.world.decisions.set(decision.decision_id, decision)
     }
   }
 

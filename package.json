@@ -16,7 +16,8 @@
     "lint": "eslint .",
     "cycles": "node tools/lint/cycles.mjs",
     "check": "npm run typecheck && npm run lint && npm run cycles",
-    "e2e:stress": "playwright test -c playwright.stress.config.ts"
+    "e2e:stress": "playwright test -c playwright.stress.config.ts",
+    "perf": "playwright test -c playwright.perf.config.ts"
   },
   "dependencies": {
     "pinia": "^4.1.0",

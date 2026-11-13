@@ -34,6 +34,8 @@ export interface MockConfig {
   speedScale: number
   /** Сдвиг часов сервера относительно часов машины, мс (проверка: экран живёт по времени сервера). */
   clockOffsetMs: number
+  /** Сколько завершённых решений за последний час создать на старте (состояние середины смены). */
+  prefillDecisions: number
 }
 
 const DEFAULT_LOAD = 150
@@ -112,6 +114,7 @@ export function parseConfig(
     journalSize: int(env, 'JOURNAL_SIZE', Math.max(50_000, load * 10), 10),
     speedScale: int(env, 'SPEED_SCALE', 1, 1),
     clockOffsetMs: signedInt(env, 'CLOCK_OFFSET_MS', 0),
+    prefillDecisions: int(env, 'PREFILL_DECISIONS', 0, 0),
     ...overrides,
   }
 }
