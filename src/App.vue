@@ -1,7 +1,7 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import AppContainer from './app/AppContainer.vue'
+</script>
 
 <template>
-  <main data-testid="app-root">
-    <h1>Экран диспетчера</h1>
-  </main>
+  <AppContainer />
 </template>

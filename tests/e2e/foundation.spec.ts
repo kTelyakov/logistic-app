@@ -5,6 +5,9 @@ import { expect, test } from './fixtures'
 import { compareOnce, expectScreenMatchesServer } from './helpers/expectScreenMatchesServer'
 import { readScreen } from './helpers/state'
 
+// Основа проверяется на эталонном экране: настоящий экран сам проверяется в screen.spec.ts
+test.use({ appKind: 'reference' })
+
 const FAST_DECISIONS: MockEnv = { DECISION_MIN_MS: '200', DECISION_MAX_MS: '400', EXECUTE_AFTER_MS: '4000' }
 
 const startedUrls: string[] = []

@@ -6,6 +6,9 @@ import { defineConfig } from '@playwright/test'
  */
 const channel = process.env.E2E_CHANNEL
 
+/** Адрес собранного экрана для e2e. */
+export const SCREEN_PORT = 5199
+
 export default defineConfig({
   testDir: 'tests/e2e',
   testMatch: '**/*.spec.ts',
@@ -15,6 +18,13 @@ export default defineConfig({
   timeout: 30_000,
   expect: { timeout: 5_000 },
   reporter: [['list']],
+  // Экран собирается и отдаётся как в боевой сборке: заодно проверяется, что все ресурсы лежат в ней
+  webServer: {
+    command: `npm run build && npx vite preview --host 127.0.0.1 --port ${SCREEN_PORT} --strictPort`,
+    url: `http://127.0.0.1:${SCREEN_PORT}`,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+  },
   use: {
     ...(channel ? { channel } : {}),
     trace: 'retain-on-failure',

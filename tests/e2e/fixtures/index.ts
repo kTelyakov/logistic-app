@@ -6,12 +6,17 @@ import { startStaticPage } from './staticServer'
 
 const REFERENCE_SCREEN = fileURLToPath(new URL('../reference-screen/index.html', import.meta.url))
 
+/** Адрес собранного экрана: его поднимает webServer из playwright.config.ts. */
+const SCREEN_ORIGIN = 'http://127.0.0.1:5199'
+
 interface Fixtures {
+  /** Какой экран открывать: настоящий (по умолчанию) или эталонный (проверка самой основы e2e). */
+  appKind: 'real' | 'reference'
   /** Окружение заглушки для теста: `test.use({ mockEnv: { FAULTS: 'slow' } })`. */
   mockEnv: MockEnv
   /** Свежая заглушка на свободном порту, останавливается после теста. */
   mock: RunningMock
-  /** Адрес, с которого отдаётся экран. Пока настоящего экрана нет, это эталонный экран. */
+  /** Адрес, с которого отдаётся экран. */
   appOrigin: string
   /** Защита от запросов вне приложения и заглушки; проверяется в конце теста. */
   externalGuard: ExternalGuard
@@ -22,6 +27,7 @@ interface Fixtures {
 }
 
 export const test = base.extend<Fixtures>({
+  appKind: ['real', { option: true }],
   mockEnv: [{}, { option: true }],
   allowExternal: [false, { option: true }],
 
@@ -34,7 +40,11 @@ export const test = base.extend<Fixtures>({
     }
   },
 
-  appOrigin: async ({}, use) => {
+  appOrigin: async ({ appKind }, use) => {
+    if (appKind === 'real') {
+      await use(SCREEN_ORIGIN)
+      return
+    }
     const server = await startStaticPage(REFERENCE_SCREEN)
     try {
       await use(server.origin)
