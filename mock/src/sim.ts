@@ -94,6 +94,7 @@ export class Simulation {
   private decisionCounter = 0
   private nextPruneAt = 0
   private timer: NodeJS.Timeout | undefined
+  private isPaused = false
 
   constructor(
     private readonly world: World,
@@ -111,12 +112,35 @@ export class Simulation {
   }
 
   start(): void {
+    if (this.timer) return
     this.timer = setInterval(() => this.tick(this.clock()), this.config.tickMs)
   }
 
   stop(): void {
     if (this.timer) clearInterval(this.timer)
     this.timer = undefined
+  }
+
+  get paused(): boolean {
+    return this.isPaused
+  }
+
+  /** Замораживает симуляцию (для сверки экрана с сервером). Команды продолжают работать. */
+  pause(): void {
+    this.isPaused = true
+    this.stop()
+  }
+
+  /** Возобновляет симуляцию; обновления машин снова разносятся по времени, без общего всплеска. */
+  resume(): void {
+    if (!this.isPaused) return
+    this.isPaused = false
+    const now = this.clock()
+    for (const mover of this.movers) {
+      mover.nextUpdateAt = now + (mover.index % this.slices) * this.config.tickMs
+    }
+    this.nextDecisionAt = Math.max(this.nextDecisionAt, now)
+    this.start()
   }
 
   /** Один шаг симуляции. Публичный, чтобы тесты вызывали его с управляемым временем. */

@@ -6,6 +6,8 @@ export const PATHS = {
   pointMode: '/api/points/:id/mode',
   ws: '/ws',
   debugState: '/debug/state',
+  debugPause: '/debug/pause',
+  debugResume: '/debug/resume',
 } as const
 
 export const HEADERS = {

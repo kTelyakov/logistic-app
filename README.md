@@ -12,12 +12,13 @@
 
 | Команда | Что делает |
 |---|---|
-| `make install` | `npm install` |
+| `make install` | `npm install` и Chromium для Playwright |
 | `make mock` | заглушка сервера на `http://127.0.0.1:8787` |
 | `make dev` | экран (Vite) |
 | `make check` | проверка типов (правила кода — в `code-rules-check`) |
 | `make test` | Vitest |
-| `make e2e`, `make perf` | пока не реализованы, завершаются ошибкой |
+| `make e2e` | Playwright на заглушке (основа в [`tests/e2e/README.md`](tests/e2e/README.md)) |
+| `make perf` | пока не реализован, завершается ошибкой |
 
 ## Заглушка сервера
 
@@ -58,6 +59,7 @@
 | `POST /api/points/{id}/mode` | тело `{"mode": "auto" \| "manual"}`, заголовки и ответы как у отмены |
 | `WS /ws?since=<seq>` | сообщения после `since`; `reset`, если их уже нет; `heartbeat` раз в 5 секунд |
 | `GET /debug/state` | истинное состояние и число выполнений каждой команды по `Idempotency-Key` |
+| `POST /debug/pause`, `POST /debug/resume` | замораживает и возобновляет симуляцию (для сверки экрана с сервером); команды на паузе работают, `heartbeat` идёт |
 
 Что в заглушке выбрано сверх текста задания:
 

@@ -101,6 +101,7 @@ export async function startMock(
     if (req.method === 'GET' && path === PATHS.debugState) {
       send(res, 200, {
         ...world.snapshot(),
+        paused: sim.paused,
         commands: commands.executionsByKey(),
         config: {
           load: config.load,
@@ -109,6 +110,13 @@ export async function startMock(
           seed: config.seed,
         },
       })
+      return
+    }
+
+    if (req.method === 'POST' && (path === PATHS.debugPause || path === PATHS.debugResume)) {
+      if (path === PATHS.debugPause) sim.pause()
+      else sim.resume()
+      send(res, 200, { paused: sim.paused, seq: world.seq })
       return
     }
 

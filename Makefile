@@ -2,6 +2,7 @@
 
 install:
 	npm install
+	npx playwright install chromium || PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=mac14-arm64 npx playwright install chromium
 
 mock:
 	npm run mock
@@ -16,7 +17,7 @@ test:
 	npm run test
 
 e2e:
-	@echo "не реализовано: e2e-foundation, tests-unit-e2e" >&2; exit 1
+	npm run e2e
 
 perf:
 	@echo "не реализовано: perf" >&2; exit 1

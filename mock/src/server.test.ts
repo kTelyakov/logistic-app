@@ -219,3 +219,76 @@ describe('GET /debug/state', () => {
     expect(state.commands['k-dbg']).toMatchObject({ executions: 1, replays: 0, status: 200 })
   })
 })
+
+describe('POST /debug/pause и /debug/resume', () => {
+  const post = (server: MockServer, path: string) => fetch(`${server.url}${path}`, { method: 'POST' })
+
+  it('на паузе seq не растёт, состояние не меняется, heartbeat продолжается', async () => {
+    mock = await startFast({ heartbeatMs: 100 })
+    await until(() => mock && mock.world.seq > 20)
+    const paused = await post(mock, '/debug/pause')
+    expect(paused.status).toBe(200)
+    expect(((await paused.json()) as { paused: boolean }).paused).toBe(true)
+
+    const a = await debug(mock)
+    const client = await connect(mock, a.seq)
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    const b = await debug(mock)
+    expect(b.seq).toBe(a.seq)
+    expect(b.vehicles).toEqual(a.vehicles)
+    expect((b as unknown as { paused: boolean }).paused).toBe(true)
+    // новых данных нет, но heartbeat идёт и показывает замёрший seq
+    expect(client.messages.filter((m) => m.type !== 'heartbeat')).toHaveLength(0)
+    const beats = client.messages.filter((m) => m.type === 'heartbeat')
+    expect(beats.length).toBeGreaterThan(2)
+    expect(beats.every((m) => m.seq === a.seq)).toBe(true)
+    client.socket.close()
+  })
+
+  it('повторные вызовы безопасны; после возобновления seq растёт', async () => {
+    mock = await startFast()
+    await post(mock, '/debug/pause')
+    await post(mock, '/debug/pause')
+    const frozen = mock.world.seq
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    expect(mock.world.seq).toBe(frozen)
+
+    expect((await post(mock, '/debug/resume')).status).toBe(200)
+    expect((await post(mock, '/debug/resume')).status).toBe(200)
+    await until(() => mock && mock.world.seq > frozen + 20)
+    expect(((await debug(mock)) as unknown as { paused: boolean }).paused).toBe(false)
+  })
+
+  it('при FAULTS=slow пауза не задерживается', async () => {
+    mock = await startFast({ faults: new Set(['slow']), slowDelayMs: 400 })
+    const t0 = Date.now()
+    await post(mock, '/debug/pause')
+    expect(Date.now() - t0).toBeLessThan(250)
+  })
+
+  it('после возобновления обновления машин не приходят одним всплеском', async () => {
+    mock = await startFast({ load: 400, tickMs: 50 })
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    await post(mock, '/debug/pause')
+    await new Promise((resolve) => setTimeout(resolve, 1_500))
+    const client = await connect(mock, mock.world.seq)
+    await post(mock, '/debug/resume')
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    client.socket.close()
+    const vehicles = client.messages.filter((m) => m.type === 'vehicle').length
+    // за полсекунды обновляется порядка половины машин, а не все 400 разом
+    expect(vehicles).toBeGreaterThan(80)
+    expect(vehicles).toBeLessThan(320)
+  })
+
+  it('команды выполняются и на паузе', async () => {
+    mock = await startFast()
+    const d = await pendingDecision(mock)
+    await post(mock, '/debug/pause')
+    const res = await fetch(`${mock.url}/api/decisions/${d.decision_id}/cancel`, {
+      method: 'POST',
+      headers: headers('k-paused', d.version),
+    })
+    expect(res.status).toBe(200)
+  })
+})

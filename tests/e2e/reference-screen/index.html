@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>Эталонный экран (только для проверки основы e2e)</title>
+    <!--
+      Это не экран диспетчера. Минимальная страница, которая:
+      1) реализует протокол синхронизации (seq, дубли, дыры, перестановки, reset, heartbeat);
+      2) выставляет DOM-контракт для тестов (см. tests/e2e/README.md).
+      Нужна, чтобы проверить фикстуры и сверку с /debug/state до появления настоящего экрана.
+      Весь внешний текст выводится через textContent.
+    -->
+  </head>
+  <body>
+    <div id="status" data-testid="connection">подключение</div>
+    <div id="points"></div>
+    <ul id="decisions"></ul>
+    <script>
+      const api = new URL(location.href).searchParams.get('api')
+      const state = { seq: 0, vehicles: new Map(), points: new Map(), decisions: new Map() }
+      let socket = null
+      let resyncing = false
+      let dirty = true
+
+      window.__dispatch = {
+        seq: () => state.seq,
+        vehicles: () =>
+          [...state.vehicles.values()].map((v) => ({
+            vehicle_id: v.vehicle_id,
+            state: v.state,
+            x_m: v.x_m,
+            y_m: v.y_m,
+            last_seen: v.last_seen,
+          })),
+      }
+
+      function setStatus(text) {
+        document.getElementById('status').textContent = text
+      }
+
+      async function resync() {
+        if (resyncing) return
+        resyncing = true
+        setStatus('переподключение')
+        try {
+          const snapshot = await (await fetch(api + '/api/snapshot')).json()
+          state.vehicles = new Map(snapshot.vehicles.map((v) => [v.vehicle_id, v]))
+          state.points = new Map(snapshot.points.map((p) => [p.point_id, p]))
+          state.decisions = new Map(snapshot.decisions.map((d) => [d.decision_id, d]))
+          state.seq = snapshot.seq
+          dirty = true
+          connect(snapshot.seq)
+        } catch {
+          setTimeout(resync, 500)
+        } finally {
+          resyncing = false
+        }
+      }
+
+      function connect(since) {
+        if (socket) {
+          socket.onclose = null
+          socket.close()
+        }
+        socket = new WebSocket(api.replace(/^http/, 'ws') + '/ws?since=' + since)
+        socket.onopen = () => setStatus('подключено')
+        socket.onmessage = (event) => onMessage(JSON.parse(event.data))
+        socket.onclose = () => setTimeout(resync, 300)
+      }
+
+      function onMessage(message) {
+        if (message.type === 'reset') return resync()
+        if (message.type === 'heartbeat') {
+          // Потеря в хвосте потока: heartbeat знает seq, которого экран не получил
+          if (message.seq > state.seq) {
+            const behind = message.seq
+            setTimeout(() => {
+              if (state.seq < behind) resync()
+            }, 400)
+          }
+          return
+        }
+        if (message.seq <= state.seq) return // повтор
+        if (message.seq !== state.seq + 1) return resync() // дыра или перестановка
+        const target = { vehicle: state.vehicles, point: state.points, decision: state.decisions }[message.type]
+        const key = { vehicle: 'vehicle_id', point: 'point_id', decision: 'decision_id' }[message.type]
+        if (target) target.set(message.data[key], message.data)
+        state.seq = message.seq
+        dirty = true
+      }
+
+      function el(tag, attrs, text) {
+        const node = document.createElement(tag)
+        for (const [name, value] of Object.entries(attrs || {})) node.setAttribute(name, String(value))
+        if (text !== undefined) node.textContent = text
+        return node
+      }
+
+      // Перерисовка только при изменениях и не чаще 10 раз в секунду
+      function render() {
+        if (!dirty) return
+        dirty = false
+        const points = document.getElementById('points')
+        points.replaceChildren(
+          ...[...state.points.values()].map((p) => {
+            const section = el('section', { 'data-testid': 'point', 'data-point-id': p.point_id, 'data-mode': p.mode }, p.name)
+            const list = el('ul')
+            for (const q of p.queue) {
+              list.append(
+                el(
+                  'li',
+                  {
+                    'data-testid': 'queue-item',
+                    'data-vehicle-id': q.vehicle_id,
+                    'data-eta': q.eta,
+                    'data-service-start': q.service_start,
+                    'data-wait-s': q.wait_s,
+                  },
+                  q.vehicle_id,
+                ),
+              )
+            }
+            section.append(list)
+            return section
+          }),
+        )
+        const decisions = document.getElementById('decisions')
+        decisions.replaceChildren(
+          ...[...state.decisions.values()]
+            .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+            .map((d) =>
+              el(
+                'li',
+                {
+                  'data-testid': 'decision',
+                  'data-decision-id': d.decision_id,
+                  'data-status': d.status,
+                  'data-version': d.version,
+                },
+                d.reason,
+              ),
+            ),
+        )
+      }
+      setInterval(render, 100)
+
+      resync()
+    </script>
+  </body>
+</html>

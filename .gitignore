@@ -5,3 +5,4 @@ dist/
 perf/*.tmp
 playwright-report/
 test-results/
+blob-report/

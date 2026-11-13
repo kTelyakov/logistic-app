@@ -7,9 +7,12 @@
 ## What Changes
 
 - Playwright-конфигурация и каталог `tests/e2e/` с фикстурами.
-- Фикстура запуска заглушки с нужным окружением (`FAULTS`, `LOAD`, `ROLE`, `FAULT_SEED`) на свободном порту, со свежим состоянием на каждый тест.
+- Заглушка получает `POST /debug/pause` и `POST /debug/resume`: симуляция замирает на время сверки, иначе экран и сервер никогда не совпадут «в один момент» (до 15 000 обновлений в секунду).
+- Фикстура запуска заглушки отдельным процессом с нужным окружением (`FAULTS`, `LOAD`, `ROLE`, `FAULT_SEED`) на свободном порту, со свежим состоянием на каждый тест.
+- Эталонный экран (`tests/e2e/reference-screen`): минимальная страница, реализующая протокол синхронизации и DOM-контракт для тестов; на нём проверяется сама основа, пока нет настоящего экрана.
 - Клиент `debugState()` к `/debug/state`.
-- Хелпер `expectScreenMatchesServer()`: сравнение машин, пунктов, решений и очередей на экране с `/debug/state`.
+- DOM-контракт экрана для тестов: машины и `seq` через `window.__dispatch` (схема рисуется на canvas), пункты, очереди и решения через `data-testid` и `data-*`.
+- Хелпер `expectScreenMatchesServer()`: пауза, сравнение машин, пунктов, очередей и решений с `/debug/state` на одном `seq`, возобновление.
 - Хелпер блокировки внешних запросов (`blockExternal()`), падающий при попытке обращения вовне.
 - Негативный контроль: сверка действительно падает на испорченном экране.
 - Цель `make e2e` запускает Playwright (вместо заглушки из bootstrap).
@@ -20,12 +23,13 @@
 - `e2e-foundation`: общие фикстуры и хелперы e2e: запуск заглушки, сверка с `/debug/state`, блокировка внешних запросов, воспроизводимость отказов.
 
 ### Modified Capabilities
-<!-- Нет. -->
+- `mock-server`: отладочные `POST /debug/pause` и `POST /debug/resume`.
 
 ## Impact
 
-- Новые файлы: `playwright.config.ts`, `tests/e2e/fixtures/*`, `tests/e2e/foundation.spec.ts`.
-- Зависимости: `@playwright/test`.
+- Новые файлы: `playwright.config.ts`, `tests/e2e/fixtures/*`, `tests/e2e/helpers/*`, `tests/e2e/reference-screen/*`, `tests/e2e/foundation.spec.ts`.
+- Изменения в `mock/`: пауза и возобновление симуляции.
+- Зависимости: `@playwright/test`; `make install` скачивает Chromium.
 - Зависит от `mock-server` и `shared-contract`. Опорный change для `tests-unit-e2e`, `perf`.
 
 ## Non-Goals

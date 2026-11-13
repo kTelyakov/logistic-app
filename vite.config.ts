@@ -9,7 +9,8 @@ export default defineConfig({
   },
   worker: { format: 'es' },
   test: {
-    include: ['mock/src/**/*.test.ts', 'src/**/*.test.ts'],
+    include: ['mock/src/**/*.test.ts', 'src/**/*.test.ts', 'tests/**/*.test.ts'],
+    exclude: ['node_modules/**', 'tests/e2e/**/*.spec.ts'],
     environment: 'node',
     testTimeout: 15_000,
   },
