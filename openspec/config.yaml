@@ -1,0 +1,49 @@
+schema: spec-driven
+
+context: |
+  Language: ru
+  All artifacts must be written in ru.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  Проект: экран диспетчера (тестовое задание, см. Frontend.md). Vue 3 + TypeScript,
+  заглушка сервера на Node + TypeScript, проверки через Makefile
+  (make mock/dev/check/test/e2e/perf).
+
+  Принятые архитектурные решения (не менять без отдельного change):
+  - Структура: src/modules/<module>/ (api, helpers, utils, store, components,
+    *Container.vue, index.ts). Импорт между модулями только через index.ts. Циклов нет.
+    src/shared (httpClient, ui, utils) и contract/ лежат вне modules. FSD и тактический DDD не используем.
+  - Контейнеры (*Container.vue) отвечают за запросы, состояние и ошибки. Компоненты берут данные
+    из props и сообщают о действиях через emit; запросов не делают, store не меняют.
+    Prop drilling решаем вложенными контейнерами, слотами и provide/inject только для сквозного
+    контекста (canCommand, siteTz, serverNow). Компонент не импортирует api/ и store/.
+  - HTTP только в слое api модуля через один общий клиент (src/shared/http). Бизнес-функции в helpers,
+    технические в utils. Pinia только для общего долгоживущего состояния; мутирующие функции
+    store имеют суффикс Mutator.
+  - Поток данных: WebSocket, разбор JSON и ядро seq (дедупликация, дыры, reset, буфер перестановок)
+    в Web Worker. Ядро seq это чистый редьюсер без обращения к Worker. Батчи в основной поток
+    раз в кадр, transferable ArrayBuffer (ping-pong). Без RxJS и без WebAssembly.
+  - Машины хранятся вне Pinia и вне реактивности: арена из типизированных массивов (SoA),
+    слот на машину, ёмкость заранее с удвоением. Закладываемся на 10-15 тысяч машин.
+    Пространственный индекс не нужен: линейный проход (findInRect, findNearest).
+  - Отрисовка схемы: голый WebGL2, instanced, один draw call, за интерфейсом SiteRenderer.
+    Устаревание машин (last_seen старше 30 с по времени сервера) считается в шейдере
+    по униформе серверного времени. Подписи в DOM или Canvas 2D. Подложка строится кодом, без внешних ресурсов.
+    Обработка webglcontextlost и webglcontextrestored. Запасной вариант: OffscreenCanvas в воркере.
+  - Контракт: пакет contract/ (npm workspace), только TypeScript-типы и константы, без zod и рантайм-валидаторов.
+    Менять только отдельным change.
+  - Экран не считает показатели (очередь, ожидание, выигрыш), всё приходит с сервера. Время только серверное
+    (сдвиг из heartbeat) и в часовом поясе площадки из /api/me. Текст reason выводится только как текст, v-html запрещён.
+  - Команды: Idempotency-Key создаётся один раз на намерение и повторяется при ретрае; If-Match с version;
+    без оптимистичных обновлений, на экране состояние из ответа сервера (409 тело = актуальное решение).
+  - Порядок changes: bootstrap-agents-docs, shared-contract, mock-server, sync-core, sync-worker,
+    decisions-and-commands, site-renderer-webgl, queues-connection-tz, code-rules-check,
+    tests-unit-e2e, perf, final-docs.
+
+rules:
+  proposal:
+    - Всегда указывать, что вне рамок change (Non-goals).
+    - Ссылаться на пункты задания из Frontend.md и на решения из контекста проекта.
+  tasks:
+    - Разбивать задачи на куски не больше 2 часов.
+    - В каждый change включать задачу на проверку через make check, make test (или обосновать, почему не применимо).
