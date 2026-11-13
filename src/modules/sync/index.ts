@@ -1,1 +1,6 @@
 export * from './core'
+export { createSyncClient } from './client/SyncClient'
+export type { SyncClient, SyncClientOptions } from './client/SyncClient'
+export type { BatchTarget } from './client/applyBatch'
+export { useConnectionStore } from './store/connectionStore'
+export type { BatchOutput, EngineOutput, StatusOutput } from './protocol'
