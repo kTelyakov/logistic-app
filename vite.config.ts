@@ -1,6 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
 import vue from '@vitejs/plugin-vue'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [vue()],
@@ -8,4 +8,9 @@ export default defineConfig({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   worker: { format: 'es' },
+  test: {
+    include: ['mock/src/**/*.test.ts', 'src/**/*.test.ts'],
+    environment: 'node',
+    testTimeout: 15_000,
+  },
 })

@@ -4,7 +4,7 @@ install:
 	npm install
 
 mock:
-	@echo "не реализовано: mock-server" >&2; exit 1
+	npm run mock
 
 dev:
 	npm run dev
@@ -13,7 +13,7 @@ check:
 	npm run typecheck
 
 test:
-	@echo "не реализовано: sync-core, tests-unit-e2e" >&2; exit 1
+	npm run test
 
 e2e:
 	@echo "не реализовано: e2e-foundation, tests-unit-e2e" >&2; exit 1
