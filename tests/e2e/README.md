@@ -56,6 +56,7 @@ await expectScreenMatchesServer(app, mock)
 | Пункт | `[data-testid="point"]` с `data-point-id`, `data-mode` |
 | Элемент очереди (внутри пункта) | `[data-testid="queue-item"]` с `data-vehicle-id`, `data-eta`, `data-service-start`, `data-wait-s` |
 | Решение | `[data-testid="decision"]` с `data-decision-id`, `data-status`, `data-version` |
+| Схема (WebGL) | `window.__dispatch.map()`: `backend`, `renderer` (`instances`, `frames`, `uploads`, `restores`, `contextLost`, `lastCpuMs`), `viewport`, `pixelAtVehicle(id)` (цвет пикселя GPU), `vehicleScreenPosition(id)`, `loseContext()`, `restoreContext()` |
 
 Время в атрибутах — ISO 8601; сравнивается как момент, формат отображения для людей не важен.
 
@@ -71,6 +72,12 @@ await expectScreenMatchesServer(app, mock)
 параметром `?api=`. Проверяется: данные доходят, сверка с `/debug/state` проходит без отказов и с
 `drop,dup,reorder`, время в поясе площадки при другом поясе браузера, `reason` с разметкой выводится текстом,
 внешних запросов нет.
+
+## Схема (`map.spec.ts`)
+
+WebGL2 и число экземпляров, цвет машины в GPU по состоянию (читается реальный пиксель), устаревшие машины
+(приглушены не раньше 30 с), потеря и восстановление контекста, выбор кликом, масштаб, перетаскивание,
+сообщение без WebGL2. Для ускорения состояний заглушка запускается с `SPEED_SCALE`.
 
 ## Что проверяет `foundation.spec.ts`
 

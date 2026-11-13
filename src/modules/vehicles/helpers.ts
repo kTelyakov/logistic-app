@@ -20,3 +20,20 @@ export function vehicleNameLookup(view: VehicleView): (id: string) => string {
   const names = index
   return (id) => names.get(id) ?? id
 }
+
+const slotCache = new WeakMap<VehicleTables, Map<string, number>>()
+
+/** Слот машины по id (или -1). Индекс строится один раз на набор таблиц. */
+export function vehicleSlotOf(view: VehicleView, id: string): number {
+  const tables = view.tables
+  let index = slotCache.get(tables)
+  if (!index) {
+    index = new Map<string, number>()
+    for (let slot = 0; slot < tables.ids.length; slot++) {
+      const known = tables.ids[slot]
+      if (known !== undefined) index.set(known, slot)
+    }
+    slotCache.set(tables, index)
+  }
+  return index.get(id) ?? -1
+}

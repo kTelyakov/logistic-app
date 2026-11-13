@@ -343,7 +343,7 @@ export class Simulation {
         mover.fromY = runtime.point.y_m
         mover.toX = DUMP.x
         mover.toY = DUMP.y
-        mover.speedMs = this.randomBetween(11_000, 16_000) / 1000
+        mover.speedMs = (this.randomBetween(11_000, 16_000) / 1000) * this.config.speedScale
         mover.startAt = now
         mover.arriveAt = now + this.travelMs(mover)
         this.touch(mover, now)
@@ -381,7 +381,7 @@ export class Simulation {
     mover.fromY = y
     mover.toX = runtime.point.x_m
     mover.toY = runtime.point.y_m
-    mover.speedMs = this.randomBetween(11_000, 16_000) / 1000
+    mover.speedMs = (this.randomBetween(11_000, 16_000) / 1000) * this.config.speedScale
     mover.startAt = now
     mover.arriveAt = now + this.travelMs(mover)
     runtime.enroute.add(mover)

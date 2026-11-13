@@ -30,6 +30,8 @@ export interface MockConfig {
   serviceMaxMs: number
   queueRecomputeMs: number
   journalSize: number
+  /** Ускорение движения машин (для тестов: состояния меняются за секунды). */
+  speedScale: number
 }
 
 const DEFAULT_LOAD = 150
@@ -98,6 +100,7 @@ export function parseConfig(
     serviceMaxMs: int(env, 'SERVICE_MAX_MS', 25_000, 1),
     queueRecomputeMs: int(env, 'QUEUE_RECOMPUTE_MS', 500, 0),
     journalSize: int(env, 'JOURNAL_SIZE', Math.max(50_000, load * 10), 10),
+    speedScale: int(env, 'SPEED_SCALE', 1, 1),
     ...overrides,
   }
 }

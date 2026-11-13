@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { DecisionsContainer } from '@/modules/decisions'
 import { PointsContainer } from '@/modules/points'
+import { SiteMapContainer } from '@/modules/site-map'
 import { fetchMe, useSessionStore } from '@/modules/session'
 import { ConnectionContainer, createSyncClient, useConnectionStore, type SyncClient } from '@/modules/sync'
-import { vehicleViewStore } from '@/modules/vehicles'
 import { configureHttp } from '@/shared/http'
 import { NoticeContainer } from '@/shared/notices'
 import { resolveApiBase } from './apiBase'
@@ -17,11 +17,6 @@ const baseUrl = resolveApiBase(window.location.search)
 
 const SESSION_RETRY_MS = 2_000
 const sessionLoading = ref(true)
-// Машины вне реактивности: перечитываем вид по счётчику ревизии
-const vehicleCount = computed(() => {
-  void vehicleViewStore.revision.value
-  return vehicleViewStore.current().count
-})
 let client: SyncClient | undefined
 let retryTimer: ReturnType<typeof setTimeout> | undefined
 let alive = true
@@ -77,12 +72,7 @@ onBeforeUnmount(() => {
     <NoticeContainer />
 
     <main class="layout">
-      <section class="panel map" aria-label="Схема площадки" data-testid="site-map">
-        <h2 class="panel__title">Схема площадки</h2>
-        <p class="panel__empty">
-          Машин на связи: <strong data-testid="vehicle-count">{{ vehicleCount }}</strong>
-        </p>
-      </section>
+      <SiteMapContainer />
       <aside class="side">
         <PointsContainer />
         <DecisionsContainer />

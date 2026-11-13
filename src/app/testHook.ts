@@ -1,4 +1,5 @@
 import type { Vehicle } from '@dispatch/contract'
+import { readMapDiagnostics, type MapDiagnostics } from '@/modules/site-map'
 import { vehicleAt, vehicleViewStore } from '@/modules/vehicles'
 
 /**
@@ -9,6 +10,8 @@ export interface DispatchTestHook {
   /** Последний seq, содержимое которого уже применено на экране. */
   seq(): number
   vehicles(): Vehicle[]
+  /** Состояние схемы: рендерер, вид, пиксели, имитация потери контекста. Пусто, пока схема не создана. */
+  map(): MapDiagnostics | undefined
 }
 
 declare global {
@@ -20,6 +23,7 @@ declare global {
 export function installTestHook(appliedSeq: () => number): void {
   window.__dispatch = {
     seq: appliedSeq,
+    map: readMapDiagnostics,
     vehicles() {
       const view = vehicleViewStore.current()
       const result: Vehicle[] = []
