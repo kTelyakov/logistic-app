@@ -11,7 +11,7 @@ dev:
 	npm run dev
 
 check:
-	npm run typecheck
+	npm run check
 
 test:
 	npm run test

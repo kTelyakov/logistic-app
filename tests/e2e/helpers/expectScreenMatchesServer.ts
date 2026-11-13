@@ -33,11 +33,9 @@ export async function compareOnce(page: Page, mock: RunningMock): Promise<Diff[]
 
 async function settle(page: Page, mock: RunningMock, timeoutMs: number, pollMs: number): Promise<Diff[]> {
   const deadline = Date.now() + timeoutMs
-  let last: Diff[] = []
   for (;;) {
-    last = await compareOnce(page, mock)
-    if (last.length === 0) return last
-    if (Date.now() >= deadline) return last
+    const diffs = await compareOnce(page, mock)
+    if (diffs.length === 0 || Date.now() >= deadline) return diffs
     await new Promise((resolve) => setTimeout(resolve, pollMs))
   }
 }

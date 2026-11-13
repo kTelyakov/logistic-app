@@ -11,7 +11,7 @@
 | `make install` | `npm install` | работает |
 | `make mock` | заглушка сервера | `mock-server` |
 | `make dev` | экран (Vite) | работает |
-| `make check` | типы, линтер, правила 1–3 | пока только `vue-tsc`; остальное в `code-rules-check` |
+| `make check` | `vue-tsc`, ESLint с правилами 1–4, циклы импортов | работает |
 | `make test` | Vitest | `sync-core`, `tests-unit-e2e` |
 | `make e2e` | Playwright на заглушке | основа готова (`e2e-foundation`), сценарии в `tests-unit-e2e` |
 | `make perf` | прогон → `perf/report.md` | `perf` |
@@ -33,10 +33,23 @@ FSD и тактический DDD не используем. Модули: `sess
 
 ## Правила кода (проверяются в `make check`, нарушение — ошибка)
 
-1. **Модули** (`rule-1`, проверка в `code-rules-check`). Код лежит в `src/modules/<module>/`. Импорт между модулями только через `index.ts` модуля-владельца. Циклов нет.
-2. **Контейнеры и компоненты** (`rule-2`, проверка в `code-rules-check`). `*Container.vue` отвечает за запросы, состояние и ошибки. Компонент показывает данные из props и сообщает о действиях через `emit`. Запросов не делает, store не меняет. Компонент не импортирует `api/` и `store/`. Для сквозного контекста (`canCommand`, `siteTz`, `serverNow`) можно `inject`. Prop drilling решай вложенными контейнерами и слотами.
-3. **HTTP и слои** (`rule-3`, проверка в `code-rules-check`). HTTP только в `api/` модуля через единый клиент `src/shared/http`. Бизнес-функции в `helpers/`, технические в `utils/`.
-4. **Pinia** (`rule-4`). Только общее долгоживущее состояние. Функции, меняющие состояние store, называются с суффиксом `Mutator`.
+1. **Модули** (`dispatch/module-boundaries` и `tools/lint/cycles.mjs`). Код лежит в `src/modules/<module>/`. Импорт между модулями только через `index.ts` модуля-владельца. Циклов нет.
+2. **Контейнеры и компоненты** (`dispatch/component-purity`). `*Container.vue` отвечает за запросы, состояние и ошибки. Компонент показывает данные из props и сообщает о действиях через `emit`. Запросов не делает, store не меняет. Компонент не импортирует `api/` и `store/`. Для сквозного контекста (`canCommand`, `siteTz`, `serverNow`) можно `inject`. Prop drilling решай вложенными контейнерами и слотами.
+3. **HTTP и слои** (`dispatch/http-and-layers`). HTTP только в `api/` модуля через единый клиент `src/shared/http`. Бизнес-функции в `helpers/`, технические в `utils/`.
+4. **Pinia** (`dispatch/store-rules`). Только общее долгоживущее состояние. Функции, меняющие состояние store, называются с суффиксом `Mutator`. `defineStore` только в каталоге `store/`.
+
+### Что именно проверяет `make check`
+
+Все правила уровня `error`, нарушение даёт ненулевой код. Область: `src/**`.
+
+- Правило 1: импорт из чужого модуля только через `@/modules/<имя>` (его `index.ts`); `src/shared` не импортирует модули и `src/app`; модули не импортируют `src/app`; циклов нет (файлы и модули).
+- Правило 2: `.vue`, кроме `*Container.vue`, не импортирует `api/`, store, Pinia, общий HTTP-клиент, не вызывает `fetch` и `*Mutator`, не открывает сеть. `import type` разрешён.
+- Правило 3: `fetch`, `XMLHttpRequest`, `axios`, `sendBeacon` только в `src/shared/http`; общий клиент (`http()`) только в `api/`; `WebSocket` только в `api/`; `helpers/` не импортирует `api/`, store, Vue, Pinia, компоненты; `utils/` не знает о модулях, `helpers/`, `api/`, store; `api/` не знает о store, Vue, компонентах.
+- Правило 4: `defineStore` только в `store/`; функция store, меняющая состояние, оканчивается на `Mutator`.
+- `v-html` запрещён.
+
+Правила написаны в `tools/lint/dispatch-plugin.mjs`, тесты «нарушение ловится, допустимое нет» в `tools/lint/rules.test.ts`.
+Не обходи проверку: если правило мешает, измени структуру кода, а не конфиг линтера.
 
 ## Запреты
 

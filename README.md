@@ -15,7 +15,7 @@
 | `make install` | `npm install` и Chromium для Playwright |
 | `make mock` | заглушка сервера на `http://127.0.0.1:8787` |
 | `make dev` | экран (Vite): откройте `http://localhost:5173` при запущенном `make mock`; Vite проксирует `/api`, `/ws`, `/debug` на заглушку (`MOCK_URL`) |
-| `make check` | проверка типов (правила кода — в `code-rules-check`) |
+| `make check` | `vue-tsc`, ESLint (правила 1–4 архитектуры), циклы импортов; любое нарушение даёт ненулевой код |
 | `make test` | Vitest |
 | `make e2e` | Playwright на заглушке (основа в [`tests/e2e/README.md`](tests/e2e/README.md)) |
 | `make perf` | пока не реализован, завершается ошибкой |
@@ -160,6 +160,17 @@
 
 Движок синхронизации проверяется в Node против настоящей заглушки: с `FAULTS=drop,dup,reorder`,
 `reset` и на 1500 машинах экран-зеркало после паузы сервера совпадает с `/debug/state`.
+
+## Правила кода и `make check`
+
+`make check` = `vue-tsc --noEmit` + ESLint + проверка циклов (`tools/lint/cycles.mjs`). Правила 1–3 из задания и
+правило 4 (Pinia, `Mutator`) реализованы локальным плагином ESLint `tools/lint/dispatch-plugin.mjs`, все уровня
+`error`. Для каждого правила в `tools/lint/rules.test.ts` есть нарушение, которое проверка обязана поймать, и
+допустимый код, который ловить нельзя. Список проверяемого — в [`AGENTS.md`](AGENTS.md).
+
+Вручную проверено внесением нарушений в `src`: глубокий импорт чужого модуля, цикл между файлами и между
+модулями, `fetch` и импорт store в компоненте, `fetch` вне слоя api, импорт `api/` из `helpers/`, `v-html`:
+`make check` падает на каждом.
 
 ## Тесты
 

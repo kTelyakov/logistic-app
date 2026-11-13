@@ -19,7 +19,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['mock/src/**/*.test.ts', 'src/**/*.test.ts', 'tests/**/*.test.ts'],
+    include: ['mock/src/**/*.test.ts', 'src/**/*.test.ts', 'tests/**/*.test.ts', 'tools/**/*.test.ts'],
     exclude: ['node_modules/**', 'tests/e2e/**/*.spec.ts'],
     environment: 'node',
     // Тесты компонентов выбирают окружение комментарием `// @vitest-environment happy-dom`

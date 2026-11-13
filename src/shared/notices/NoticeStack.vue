@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Notice } from './noticeStore'
+import type { Notice } from './types'
 
 defineProps<{ notices: Notice[] }>()
 const emit = defineEmits<{ dismiss: [id: number] }>()

@@ -1,13 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import type { Notice, NoticeKind } from '../types'
 
-export type NoticeKind = 'conflict' | 'forbidden' | 'unknown' | 'error' | 'info'
-
-export interface Notice {
-  id: number
-  kind: NoticeKind
-  message: string
-}
 
 const MAX_NOTICES = 5
 const DEFAULT_TTL_MS = 10_000

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import NoticeStack from './NoticeStack.vue'
-import { useNoticeStore } from './noticeStore'
+import { useNoticeStore } from './store/noticeStore'
 
 const store = useNoticeStore()
 </script>
