@@ -17,6 +17,15 @@ export function modeLabel(mode: PointMode): string {
 
 const asPoint = (body: SetModeResponseBody): Point => body as Point
 
+/**
+ * Версия пункта растёт при любом изменении (в том числе очереди), поэтому 409 бывает и когда режим не менялся.
+ * Объясняем, что произошло на самом деле, и чего ждать от диспетчера.
+ */
+export function conflictMessage(actual: Point, requested: PointMode, pointName: string): string {
+  if (actual.mode === requested) return `${pointName}: режим уже «${modeLabel(actual.mode)}», изменений не требуется.`
+  return `${pointName}: данные пункта обновились раньше вашей команды, режим остался «${modeLabel(actual.mode)}». Показано актуальное состояние, повторите действие.`
+}
+
 /** Трактует ответ сервера на смену режима. Состояние на экране берётся из ответа. */
 export function interpretModeResponse(response: HttpResponse<SetModeResponseBody>, requested: PointMode, pointName: string): ModeOutcome {
   switch (response.status) {
@@ -24,11 +33,7 @@ export function interpretModeResponse(response: HttpResponse<SetModeResponseBody
       return { kind: 'changed', point: asPoint(response.body) }
     case 409: {
       const point = asPoint(response.body)
-      return {
-        kind: 'conflict',
-        point,
-        message: `${pointName}: режим уже изменился на сервере (сейчас «${modeLabel(point.mode)}», запрошен «${modeLabel(requested)}»). Показано актуальное состояние.`,
-      }
+      return { kind: 'conflict', point, message: conflictMessage(point, requested, pointName) }
     }
     case 403: {
       const text = (response.body as { message?: string } | undefined)?.message ?? 'недостаточно прав'

@@ -1,4 +1,4 @@
-.PHONY: install mock dev check test e2e perf
+.PHONY: install mock dev check test e2e e2e-stress perf
 
 install:
 	npm install
@@ -18,6 +18,9 @@ test:
 
 e2e:
 	npm run e2e
+
+e2e-stress:
+	npm run e2e:stress
 
 perf:
 	@echo "не реализовано: perf" >&2; exit 1

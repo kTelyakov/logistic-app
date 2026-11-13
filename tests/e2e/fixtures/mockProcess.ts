@@ -9,7 +9,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const MOCK_ENV_KEYS = [
   'PORT', 'LOAD', 'FAULTS', 'ROLE', 'FAULT_SEED', 'FAULT_RATE', 'TICK_MS', 'HEARTBEAT_MS',
   'RESET_INTERVAL_MS', 'SLOW_DELAY_MS', 'DECISION_MIN_MS', 'DECISION_MAX_MS', 'EXECUTE_AFTER_MS',
-  'STALE_SILENT_MS', 'STALE_ACTIVE_MS', 'SERVICE_MIN_MS', 'SERVICE_MAX_MS', 'QUEUE_RECOMPUTE_MS', 'JOURNAL_SIZE', 'SPEED_SCALE',
+  'STALE_SILENT_MS', 'STALE_ACTIVE_MS', 'SERVICE_MIN_MS', 'SERVICE_MAX_MS', 'QUEUE_RECOMPUTE_MS', 'JOURNAL_SIZE', 'SPEED_SCALE', 'CLOCK_OFFSET_MS',
 ]
 
 export type MockEnv = Record<string, string>
@@ -17,6 +17,7 @@ export type MockEnv = Record<string, string>
 export interface DebugState extends ServerState {
   at: string
   paused: boolean
+  muted: boolean
   commands: Record<string, { command: string; target: string; executions: number; replays: number; status: number }>
   config: { load: number; faults: string[]; role: string; seed: number }
 }
@@ -28,6 +29,11 @@ export interface RunningMock {
   debugState(): Promise<DebugState>
   pause(): Promise<void>
   resume(): Promise<void>
+  /** Сервер перестаёт слать сообщения клиентам, состояние продолжает меняться: экран не знает об изменениях. */
+  mute(): Promise<void>
+  unmute(): Promise<void>
+  /** Обрывает все соединения WebSocket. */
+  disconnect(): Promise<void>
   stop(): Promise<void>
   /** Лог процесса заглушки (для сообщений об ошибках). */
   output(): string
@@ -90,6 +96,9 @@ export async function startMockProcess(env: MockEnv = {}): Promise<RunningMock> 
     },
     pause: () => post('/debug/pause'),
     resume: () => post('/debug/resume'),
+    mute: () => post('/debug/mute'),
+    unmute: () => post('/debug/unmute'),
+    disconnect: () => post('/debug/disconnect'),
     async stop() {
       if (child.exitCode === null) child.kill('SIGTERM')
       await Promise.race([exited, new Promise((resolve) => setTimeout(resolve, 3_000))])

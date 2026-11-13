@@ -6,12 +6,15 @@ const STATS_INTERVAL_MS = 10_000
 async function main(): Promise<void> {
   const config = parseConfig(process.env)
   const log = (message: string) => console.log(`[mock] ${message}`)
-  const mock = await startMock(config, Date.now, log)
+  // Часы сервера могут расходиться с часами машины: так проверяется, что экран живёт по времени сервера
+  const clock = () => Date.now() + config.clockOffsetMs
+  const mock = await startMock(config, clock, log)
 
   log(`слушает ${mock.url}`)
   log(
     `LOAD=${config.load} FAULTS=${[...config.faults].join(',') || '-'} ROLE=${config.role} ` +
-      `FAULT_SEED=${config.seed} (уровень отказов ${config.faultRate})`,
+      `FAULT_SEED=${config.seed} (уровень отказов ${config.faultRate})` +
+      (config.clockOffsetMs !== 0 ? ` CLOCK_OFFSET_MS=${config.clockOffsetMs}` : ''),
   )
 
   // Если симуляция не успевает, обновления отстают: показываем это в логе

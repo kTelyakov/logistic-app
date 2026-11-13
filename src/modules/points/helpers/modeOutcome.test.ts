@@ -9,11 +9,19 @@ describe('interpretModeResponse', () => {
     expect(interpretModeResponse({ status: 200, body: point() }, 'manual', 'Пункт 2')).toEqual({ kind: 'changed', point: point() })
   })
 
-  it('409: актуальный пункт из ответа и объяснение с запрошенным и текущим режимом', () => {
+  it('409: режим уже тот, что запрошен: сообщение без паники', () => {
+    const outcome = interpretModeResponse({ status: 409, body: point({ mode: 'manual', version: 20 }) }, 'manual', 'Пункт 2')
+    expect(outcome).toMatchObject({ kind: 'conflict', point: { mode: 'manual', version: 20 } })
+    expect((outcome as { message: string }).message).toBe('Пункт 2: режим уже «ручной», изменений не требуется.')
+  })
+
+  it('409: версия устарела (очередь обновилась), режим другой: объясняет и просит повторить', () => {
     const outcome = interpretModeResponse({ status: 409, body: point({ mode: 'auto', version: 20 }) }, 'manual', 'Пункт 2')
     expect(outcome).toMatchObject({ kind: 'conflict', point: { mode: 'auto', version: 20 } })
-    expect((outcome as { message: string }).message).toContain('сейчас «авто»')
-    expect((outcome as { message: string }).message).toContain('запрошен «ручной»')
+    const text = (outcome as { message: string }).message
+    expect(text).toContain('обновились раньше вашей команды')
+    expect(text).toContain('режим остался «авто»')
+    expect(text).toContain('повторите')
   })
 
   it('403, 404 и прочие', () => {

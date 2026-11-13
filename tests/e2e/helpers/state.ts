@@ -40,7 +40,7 @@ export interface ScreenState {
 export interface ServerState {
   seq: number
   vehicles: ScreenVehicle[]
-  points: Array<{ point_id: string; mode: string; queue: ScreenQueueItem[] }>
+  points: Array<{ point_id: string; mode: string; version?: number; queue: ScreenQueueItem[] }>
   decisions: ScreenDecision[]
 }
 

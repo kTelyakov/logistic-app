@@ -292,3 +292,63 @@ describe('POST /debug/pause и /debug/resume', () => {
     expect(res.status).toBe(200)
   })
 })
+
+describe('CLOCK_OFFSET_MS', () => {
+  it('время сервера (at, last_seen, created_at, execute_at) сдвинуто относительно часов машины', async () => {
+    const offset = 2 * 3_600_000
+    const { startMock } = await import('./server')
+    const { parseConfig } = await import('./config')
+    const config = parseConfig({}, { port: 0, load: 20, tickMs: 50, decisionMinMs: 80, decisionMaxMs: 120, executeAfterMs: 5_000, clockOffsetMs: offset })
+    mock = await startMock(config, () => Date.now() + offset)
+    const snapshot = (await (await fetch(`${mock.url}/api/snapshot`)).json()) as Snapshot
+    expect(Date.parse(snapshot.at) - Date.now()).toBeGreaterThan(offset - 2_000)
+    expect(Date.parse(snapshot.at) - Date.now()).toBeLessThan(offset + 2_000)
+    expect(Date.parse(snapshot.vehicles[0]?.last_seen ?? '') - Date.now()).toBeGreaterThan(offset - 2_000)
+    const decision = await pendingDecision(mock)
+    expect(Date.parse(decision.created_at) - Date.now()).toBeGreaterThan(offset - 2_000)
+    expect(Date.parse(decision.execute_at) - Date.parse(decision.created_at)).toBe(5_000)
+  })
+})
+
+describe('POST /debug/mute, /debug/unmute и /debug/disconnect', () => {
+  const post = (server: MockServer, path: string) => fetch(`${server.url}${path}`, { method: 'POST' })
+
+  it('mute: сервер молчит для клиентов (даже heartbeat), состояние растёт; unmute: сообщения идут, в seq разрыв', async () => {
+    mock = await startFast({ heartbeatMs: 100 })
+    const client = await connect(mock, mock.world.seq)
+    await until(() => client.messages.length > 5)
+    expect(((await (await post(mock, '/debug/mute')).json()) as { muted: boolean }).muted).toBe(true)
+    await new Promise((resolve) => setTimeout(resolve, 150))
+    const received = client.messages.length
+    const seqAtMute = mock.world.seq
+    await new Promise((resolve) => setTimeout(resolve, 600))
+    expect(client.messages.length, 'за время молчания клиент ничего не получил').toBe(received)
+    expect(mock.world.seq, 'состояние сервера продолжало меняться').toBeGreaterThan(seqAtMute)
+    expect(((await debug(mock)) as unknown as { muted: boolean }).muted).toBe(true)
+
+    await post(mock, '/debug/unmute')
+    await until(() => client.messages.length > received)
+    client.socket.close()
+  })
+
+  it('disconnect: все соединения закрыты, новые принимаются', async () => {
+    mock = await startFast()
+    const a = await connect(mock, mock.world.seq)
+    const b = await connect(mock, mock.world.seq)
+    const res = await post(mock, '/debug/disconnect')
+    expect(((await res.json()) as { disconnected: number }).disconnected).toBe(2)
+    await Promise.all([a.closed, b.closed])
+    const c = await connect(mock, mock.world.seq)
+    await until(() => c.messages.length > 0)
+    c.socket.close()
+  })
+
+  it('отладочные команды не задерживаются режимом slow', async () => {
+    mock = await startFast({ faults: new Set(['slow']), slowDelayMs: 400 })
+    const t0 = Date.now()
+    await post(mock, '/debug/mute')
+    await post(mock, '/debug/unmute')
+    await post(mock, '/debug/disconnect')
+    expect(Date.now() - t0).toBeLessThan(300)
+  })
+})

@@ -62,6 +62,8 @@ export async function startMock(
   const timers = new Set<NodeJS.Timeout>()
   const clients = new Set<{ socket: WebSocket; sender: FaultySender }>()
   let pendingReset = false
+  /** Сервер молчит для клиентов (для тестов): состояние меняется, а сообщения не уходят. */
+  let muted = false
 
   const me: Me = {
     user_id: 'u-7',
@@ -102,6 +104,7 @@ export async function startMock(
       send(res, 200, {
         ...world.snapshot(),
         paused: sim.paused,
+        muted,
         commands: commands.executionsByKey(),
         config: {
           load: config.load,
@@ -117,6 +120,17 @@ export async function startMock(
       if (path === PATHS.debugPause) sim.pause()
       else sim.resume()
       send(res, 200, { paused: sim.paused, seq: world.seq })
+      return
+    }
+    if (req.method === 'POST' && (path === PATHS.debugMute || path === PATHS.debugUnmute)) {
+      muted = path === PATHS.debugMute
+      send(res, 200, { muted, seq: world.seq })
+      return
+    }
+    if (req.method === 'POST' && path === PATHS.debugDisconnect) {
+      const count = clients.size
+      for (const { socket } of clients) socket.terminate()
+      send(res, 200, { disconnected: count })
       return
     }
 
@@ -219,7 +233,7 @@ export async function startMock(
     }
 
     const sendRaw = (json: string) => {
-      if (ws.readyState !== ws.OPEN) return
+      if (muted || ws.readyState !== ws.OPEN) return
       if (ws.bufferedAmount > BUFFERED_LIMIT_BYTES) {
         ws.terminate()
         return
@@ -252,6 +266,7 @@ export async function startMock(
 
   const heartbeat = setInterval(() => {
     const json = JSON.stringify({ type: 'heartbeat', seq: world.seq, at: iso(clock()) })
+    if (muted) return
     for (const { socket } of clients) {
       if (socket.readyState === socket.OPEN) socket.send(json)
     }

@@ -8,6 +8,9 @@ export const PATHS = {
   debugState: '/debug/state',
   debugPause: '/debug/pause',
   debugResume: '/debug/resume',
+  debugMute: '/debug/mute',
+  debugUnmute: '/debug/unmute',
+  debugDisconnect: '/debug/disconnect',
 } as const
 
 export const HEADERS = {

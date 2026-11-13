@@ -32,6 +32,8 @@ export interface MockConfig {
   journalSize: number
   /** Ускорение движения машин (для тестов: состояния меняются за секунды). */
   speedScale: number
+  /** Сдвиг часов сервера относительно часов машины, мс (проверка: экран живёт по времени сервера). */
+  clockOffsetMs: number
 }
 
 const DEFAULT_LOAD = 150
@@ -43,6 +45,14 @@ function int(env: Record<string, string | undefined>, name: string, fallback: nu
   if (!Number.isInteger(value) || value < min) {
     throw new Error(`${name}: ожидается целое число не меньше ${min}, получено "${raw}"`)
   }
+  return value
+}
+
+function signedInt(env: Record<string, string | undefined>, name: string, fallback: number): number {
+  const raw = env[name]
+  if (raw === undefined || raw === '') return fallback
+  const value = Number(raw)
+  if (!Number.isInteger(value)) throw new Error(`${name}: ожидается целое число, получено "${raw}"`)
   return value
 }
 
@@ -101,6 +111,7 @@ export function parseConfig(
     queueRecomputeMs: int(env, 'QUEUE_RECOMPUTE_MS', 500, 0),
     journalSize: int(env, 'JOURNAL_SIZE', Math.max(50_000, load * 10), 10),
     speedScale: int(env, 'SPEED_SCALE', 1, 1),
+    clockOffsetMs: signedInt(env, 'CLOCK_OFFSET_MS', 0),
     ...overrides,
   }
 }
